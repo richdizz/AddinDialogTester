@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+    <script src="../../Scripts/jquery-1.9.1.min.js"></script>
+    <script src="//secure.aadcdn.microsoftonline-p.com/lib/1.0.7/js/adal.js"></script>
+    <script src="https://officejsbeta.azurewebsites.net/office.debug.js"></script>
+    <script src="../App.js"></script>
+    <script>
+        Office.initialize = function (reason) {
+            $(document).ready(signIn);
+        }
+
+        function signIn() {
+            var response = { "status": "none", "accessToken": "" };
+
+            window.config = {
+                instance: "https://login.microsoftonline.com/",
+                tenant: app.tenant,
+                clientId: app.clientId,
+                postLogoutRedirectUri: window.location.origin,
+                cacheLocation: "localStorage",
+                endpoints: {
+                    "msgraph": "https://graph.microsoft.com"
+                }
+            }
+
+            // Setup auth context
+            var authContext = new AuthenticationContext(window.config);
+            authContext.redirectUri = app.redirectUri;
+            authContext.handleWindowCallback();
+
+            var isCallback = authContext.isCallback(window.location.hash);
+            var user = authContext.getCachedUser();
+            if (!user) {
+                authContext.login();
+            } else if (authContext.getCachedUser()) {
+                // Get access token for graph
+                authContext.acquireToken("https://graph.microsoft.com", function (error, token) {
+                    // Handle ADAL Error
+                    if (error || !token) {
+                        response.status = "error";
+                        response.accessToken = null;
+                        Office.context.ui.messageParent(JSON.stringify(response));
+                    } else {
+                        response.status = "success";
+                        response.accessToken = token;
+                        Office.context.ui.messageParent(JSON.stringify(response));
+                    }
+                });
+            }
+        }
+    </script>
+</head>
+<body>
+    Signing into Office 365...
+</body>
+</html>
